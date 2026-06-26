@@ -4,6 +4,14 @@ import { useRouter } from 'next/navigation';
 import ProtectedRoute from '../../components/ProtectedRoute';
 import MailSidebar from '../../components/MailSidebar';
 import { useAuth } from '../../contexts/AuthContext';
+import { HiX, HiPaperClip } from 'react-icons/hi';
+
+const shulkproAddresses = [
+  'no-reply@shulkpro.in',
+  'shravan@shulkpro.in',
+  'info@shulkpro.in',
+  'support@shulkpro.in',
+];
 
 export default function ComposePage() {
   const [to, setTo] = useState('');
@@ -13,6 +21,7 @@ export default function ComposePage() {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [selectedAddress, setSelectedAddress] = useState(shulkproAddresses[0]);
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { user } = useAuth();
@@ -28,6 +37,7 @@ export default function ComposePage() {
     formData.append('body', body);
     if (attachment) formData.append('attachment', attachment);
     if (user?.id) formData.append('userId', user.id);
+    // Optionally, use selectedAddress as the sender (from) if needed
     const res = await fetch('/api/send', {
       method: 'POST',
       body: formData,
@@ -42,19 +52,27 @@ export default function ComposePage() {
     }
   };
 
+  const handleClose = () => {
+    router.back();
+  };
+
   return (
     <ProtectedRoute>
       <div className="flex min-h-screen">
-        <MailSidebar />
-        <main className="flex-1 p-8 flex flex-col items-center">
-          <h1 className="text-3xl font-bold mb-6">Compose Email</h1>
-          <form onSubmit={handleSend} className="w-full max-w-xl bg-white rounded shadow p-8 flex flex-col gap-4">
+        <MailSidebar selectedAddress={selectedAddress} onAddressChange={setSelectedAddress} />
+        {/* Floating Compose Modal */}
+        <div className="fixed bottom-8 right-8 z-30 max-w-lg w-full bg-white rounded-2xl shadow-2xl border border-gray-200 flex flex-col">
+          <div className="flex items-center justify-between px-6 py-3 border-b">
+            <span className="font-semibold text-gray-800">New Message</span>
+            <button onClick={handleClose} className="p-1 rounded-full hover:bg-gray-100"><HiX className="w-6 h-6 text-gray-500" /></button>
+          </div>
+          <form onSubmit={handleSend} className="flex flex-col gap-3 px-6 py-4">
             <input
               type="email"
               placeholder="To"
               value={to}
               onChange={e => setTo(e.target.value)}
-              className="border p-2 rounded"
+              className="border-b border-gray-200 focus:outline-none focus:border-blue-400 p-2 text-sm"
               required
             />
             <input
@@ -62,34 +80,43 @@ export default function ComposePage() {
               placeholder="Subject"
               value={subject}
               onChange={e => setSubject(e.target.value)}
-              className="border p-2 rounded"
+              className="border-b border-gray-200 focus:outline-none focus:border-blue-400 p-2 text-sm"
               required
             />
             <textarea
               placeholder="Message"
               value={body}
               onChange={e => setBody(e.target.value)}
-              className="border p-2 rounded min-h-[120px]"
+              className="border border-gray-200 rounded-lg p-2 min-h-[120px] focus:outline-none focus:border-blue-400 text-sm"
               required
             />
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={e => setAttachment(e.target.files?.[0] || null)}
-              className="border p-2 rounded"
-              accept="*"
-            />
-            {error && <div className="text-red-500">{error}</div>}
-            {success && <div className="text-green-600">{success}</div>}
-            <button
-              type="submit"
-              className="bg-blue-600 text-white py-2 rounded hover:bg-blue-700 disabled:opacity-50"
-              disabled={sending}
-            >
-              {sending ? 'Sending...' : 'Send'}
-            </button>
+            <div className="flex items-center gap-2 mt-2">
+              <label className="flex items-center cursor-pointer">
+                <HiPaperClip className="w-5 h-5 text-gray-500 mr-1" />
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={e => setAttachment(e.target.files?.[0] || null)}
+                  className="hidden"
+                  accept="*"
+                />
+                <span className="text-xs text-gray-600">Attach</span>
+              </label>
+              {attachment && <span className="text-xs text-blue-700 ml-2">{attachment.name}</span>}
+            </div>
+            {error && <div className="text-red-500 text-xs mt-1">{error}</div>}
+            {success && <div className="text-green-600 text-xs mt-1">{success}</div>}
+            <div className="flex justify-end mt-2">
+              <button
+                type="submit"
+                className="bg-blue-600 text-white px-6 py-2 rounded-full font-semibold shadow hover:bg-blue-700 disabled:opacity-50"
+                disabled={sending}
+              >
+                {sending ? 'Sending...' : 'Send'}
+              </button>
+            </div>
           </form>
-        </main>
+        </div>
       </div>
     </ProtectedRoute>
   );
